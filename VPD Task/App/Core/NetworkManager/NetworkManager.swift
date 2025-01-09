@@ -8,21 +8,40 @@
 import Foundation
 
 
-class NetworkManager {
+protocol NetworkProtocol{
+    func request<T: Codable>(_ endpoint: Endpoint, completion: @escaping (Result<T, NetworkError>) -> Void)
+}
+
+
+
+class NetworkManager: NetworkProtocol {
     static let shared = NetworkManager()
-    private let baseURL = "https://api.github.com/repositories"
-    private var currentPage = 1
-    private let perPage = 30
-    
     private init() {}
     
-    func fetchRepositories(page: Int = 1, completion: @escaping (Result<[Repository], NetworkError>) -> Void) {
-        guard let url = URL(string: "\(baseURL)?page=\(page)&per_page=\(perPage)") else {
+    func request<T: Codable>(_ endpoint: Endpoint, completion: @escaping (Result<T, NetworkError>) -> Void) {
+        guard var urlComponents = URLComponents(string: endpoint.baseURL + endpoint.path) else {
+            completion(.failure(.invalidURL))
+            return
+        }
+        print(urlComponents)
+        if let queryItems = endpoint.queryItems {
+            urlComponents.queryItems = queryItems
+        }
+        
+        guard let url = urlComponents.url else {
             completion(.failure(.invalidURL))
             return
         }
         
-        let task = URLSession.shared.dataTask(with: url) { data, response, error in
+        var request = URLRequest(url: url)
+        request.httpMethod = endpoint.method.rawValue
+        print(url)
+        print(request)
+        if let headers = endpoint.headers {
+            headers.forEach { request.setValue($1, forHTTPHeaderField: $0) }
+        }
+        
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error as? URLError {
                 completion(.failure(.urlError(error)))
                 return
@@ -44,11 +63,11 @@ class NetworkManager {
             }
             
             do {
-                 let repositories = try JSONDecoder().decode([Repository].self, from: data)
-                 completion(.success(repositories))
-             } catch let decodingError {
-                 completion(.failure(.decodingError(decodingError.localizedDescription)))
-             }
+                let decodedData = try JSONDecoder().decode(T.self, from: data)
+                completion(.success(decodedData))
+            } catch let decodingError {
+                completion(.failure(.decodingError(decodingError.localizedDescription)))
+            }
         }
         task.resume()
     }

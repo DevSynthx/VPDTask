@@ -5,8 +5,6 @@
 //  Created by Inyene on 1/9/25.
 //
 
-
-
 import Foundation
 
 
@@ -29,7 +27,7 @@ class DependencyContainer {
     }
 }
 
-// MARK: - Inject Property Wrapper
+
 @propertyWrapper
 struct Inject<T> {
     let wrappedValue: T
