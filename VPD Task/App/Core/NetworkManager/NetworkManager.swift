@@ -23,7 +23,7 @@ class NetworkManager: NetworkProtocol {
             completion(.failure(.invalidURL))
             return
         }
-        print(urlComponents)
+        
         if let queryItems = endpoint.queryItems {
             urlComponents.queryItems = queryItems
         }
@@ -35,8 +35,8 @@ class NetworkManager: NetworkProtocol {
         
         var request = URLRequest(url: url)
         request.httpMethod = endpoint.method.rawValue
-        print(url)
-        print(request)
+        
+        
         if let headers = endpoint.headers {
             headers.forEach { request.setValue($1, forHTTPHeaderField: $0) }
         }
