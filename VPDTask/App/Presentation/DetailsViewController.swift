@@ -28,6 +28,17 @@ final class DetailsViewController: UIViewController {
         return stack
     }()
     
+    private lazy var errorLabel: UILabel = {
+        let label = UILabel()
+        label.textColor = .systemRed
+        label.font = .systemFont(ofSize: 15)
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.isHidden = true
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+    
     private lazy var avatarImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
@@ -279,6 +290,7 @@ private extension DetailsViewController {
     }
     
     func showContributorsLoadingState() {
+        errorLabel.isHidden = true
         contributorsGridView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         contributorsGridView.addArrangedSubview(contributorsLoadingIndicator)
         contributorsLoadingIndicator.startAnimating()
@@ -292,6 +304,14 @@ private extension DetailsViewController {
           emptyLabel.textAlignment = .center
           contributorsGridView.addArrangedSubview(emptyLabel)
       }
+    
+    func showError(_ message: String) {
+        contributorsLoadingIndicator.stopAnimating()
+        contributorsGridView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        errorLabel.text = message
+        errorLabel.isHidden = false
+        contributorsGridView.addArrangedSubview(errorLabel)
+    }
 }
 
 // MARK: - Data Loading
@@ -318,8 +338,9 @@ private extension DetailsViewController {
                 case .success(let contributors):
                     self?.setupContributorsGrid(with: contributors)
                 case .failure(let error):
-                    print(error.localizedDescription)
-                    // TODO: Handle error state
+                    self?.contributorsLoadingIndicator.stopAnimating()
+                    self?.showError(error.errorDescription ?? "Failed to load contributors. Please try again later.")
+
                 }
             }
         }

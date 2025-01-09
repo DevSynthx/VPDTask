@@ -60,7 +60,7 @@ class HomeViewController: UIViewController {
         tableView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         tableView.delegate = self
         tableView.dataSource = self
-        tableView.register(RepositoryCell.self, forCellReuseIdentifier: "RepositoryCell")
+        tableView.register(RepositoryCell.self, forCellReuseIdentifier: RepositoryCell.identifier)
         view.addSubview(tableView)
         
         refreshControl.addTarget(self, action: #selector(refreshData), for: .valueChanged)
@@ -101,22 +101,13 @@ class HomeViewController: UIViewController {
      }
      
     
-    private func showError(_ error: NetworkError) {
-        let alert = UIAlertController(
-            title: "Error",
-            message: error.localizedDescription,
-            preferredStyle: .alert
-        )
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
-    }
-    
     @objc private func refreshData() {
         fetchRepositories(isRefreshing: true)
     }
 }
 
-// UITableView Extension
+
+// MARK: - UITableView Extension
 extension HomeViewController: UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return repositories.count
@@ -148,91 +139,24 @@ extension HomeViewController: UITableViewDelegate, UITableViewDataSource {
 }
 
 
-// RepositoryCell
-class RepositoryCell: UITableViewCell {
-    
-    private let avatarImageView: UIImageView = {
-        let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFill
-        imageView.clipsToBounds = true
-        imageView.layer.cornerRadius = 25
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        return imageView
-    }()
-    
-    
-    private let nameLabel = UILabel()
-    private let descriptionLabel = UILabel()
-    private let ownerLabel = UILabel()
-    
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
-        setupUI()
+// MARK: - Show Error Alert
+private extension HomeViewController {
+    func showError(_ error: NetworkError) {
+        let alert = UIAlertController(
+            title: "Error",
+            message: error.localizedDescription,
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Retry", style: .default) { [weak self] _ in
+            self?.fetchRepositories()
+        })
+        
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        
+        present(alert, animated: true)
     }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    private func setupUI() {
-        nameLabel.font = .systemFont(ofSize: 16, weight: .medium)
-        descriptionLabel.font = .systemFont(ofSize: 14)
-        descriptionLabel.numberOfLines = 2
-        descriptionLabel.textColor = .secondaryLabel
-        ownerLabel.font = .systemFont(ofSize: 14)
-        ownerLabel.textColor = .secondaryLabel
-        
-        let labelsStack = UIStackView(arrangedSubviews: [nameLabel, descriptionLabel, ownerLabel])
-        labelsStack.axis = .vertical
-        labelsStack.spacing = 4
-        labelsStack.translatesAutoresizingMaskIntoConstraints = false
-        
-        contentView.addSubview(avatarImageView)
-        contentView.addSubview(labelsStack)
-        
-        NSLayoutConstraint.activate([
-            avatarImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            avatarImageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
-            avatarImageView.widthAnchor.constraint(equalToConstant: 50),
-            avatarImageView.heightAnchor.constraint(equalToConstant: 50),
-            
-            labelsStack.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 12),
-            labelsStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            labelsStack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
-            labelsStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12)
-        ])
-    }
-    
-    func configure(with repository: Repository) {
-        nameLabel.text = repository.name.capitalized
-         descriptionLabel.text = repository.description
-        
-         ownerLabel.text = "by \(repository.owner.login)"
-         ownerLabel.textColor = .systemBlue
-        
-         let placeholder = UIImage(systemName: "person.circle.fill")
-         if let avatarURL = URL(string: repository.owner.avatarUrl) {
-             avatarImageView.kf.setImage(
-                 with: avatarURL,
-                 placeholder: placeholder,
-                 options: [
-                     .transition(.fade(0.2)),
-                     .cacheOriginalImage
-                 ]
-             )
-         } else {
-             avatarImageView.image = placeholder
-         }
-     }
-     
-     override func prepareForReuse() {
-         super.prepareForReuse()
-         avatarImageView.kf.cancelDownloadTask()
-         avatarImageView.image = nil
-     }
 }
-
-
 
 #Preview{
     let viewController = HomeViewController()
